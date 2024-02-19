@@ -1,0 +1,15 @@
+---
+resilience4j:
+  ratelimiter:
+    instances:
+      owaspService:
+        limitForPeriod: 1
+        limitRefreshPeriod: 100000
+        timeoutDuration: 800ms
+        registerHealthIndicator: true
+        eventConsumerBufferSize: 100
+
+logging:
+  level:
+    root: INFO
+    web: INFO

@@ -7,10 +7,7 @@ import org.springframework.stereotype.Service;
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Random;
+import java.util.*;
 
 @Service
 @Slf4j
@@ -60,4 +57,18 @@ public class CredentialsStuffingService {
         } else return Optional.empty();
     }
 
+
+    public static Set<String> loadStolenData(String fileName) {
+            log.info("Loading {} data", fileName);
+            Set<String> data = new HashSet<>();
+            try (BufferedReader br = new BufferedReader(new FileReader("src/main/resources/" + fileName))) {
+                String value;
+                while ((value = br.readLine()) != null) {
+                    data.add(value);
+                }
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+            return data;
+    }
 }

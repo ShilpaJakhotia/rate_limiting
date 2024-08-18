@@ -4,6 +4,7 @@ package com.grid.owasp.owasp;
 import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 //import org.springframework.security.web.csrf.CsrfToken;
 import org.springframework.web.bind.annotation.*;
@@ -76,5 +77,19 @@ public class SimpleLoginController {
         }
         log.info("No user found with userName: " + userName);
         return ResponseEntity.ok("No user found with userName: " + userName);
+    }
+
+    @PostMapping(value = "/login", consumes = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<String> login(@RequestBody User user) {
+        if (user != null &&
+                CredentialsStuffingService.userDatabase.containsKey(user.getUserName()) &&
+                CredentialsStuffingService.userDatabase.get(user.getUserName()).equals(user.getPassword())
+        ) {
+            String response = "LOGIN SUCCESSFUL for user " + user.getUserName();
+            log.info("LOGIN SUCCESSFUL");
+            return ResponseEntity.ok(response);
+        } else {
+            return ResponseEntity.ok("Login failed, incorrect credentials!");
+        }
     }
 }

